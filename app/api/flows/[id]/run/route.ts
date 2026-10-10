@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getFlow, recordRun } from '@/lib/repo';
 import { executeFlow } from '@/lib/executor';
 import { pickVersion } from '@/lib/mutation';
+import { requireAdmin } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
   const { id } = await params;
   try {
     const flow = await getFlow(id);

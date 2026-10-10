@@ -2,6 +2,7 @@ import type { Browser, Page } from 'playwright-core';
 import type { Flow, FlowStep, RunStep, StepHealth } from './types';
 import { resolveInPage, type ResolveResult } from './resolve';
 import { launchBrowser } from './browser';
+import { assertAllowedNavigation } from './security';
 
 // ─────────────────────────────────────────────────────────────
 // The MendKit engine. Like a normal browser-automation runner, but
@@ -58,6 +59,11 @@ export async function executeFlow(
   try {
     browser = await launchBrowser();
     const context = await browser.newContext({ viewport: VIEWPORT });
+    const originHost = new URL(opts.origin).hostname;
+    await context.route('**/*', async (route) => {
+      try { assertAllowedNavigation(route.request().url(), [originHost]); await route.continue(); }
+      catch { await route.abort('blockedbyclient'); }
+    });
     const page = await context.newPage();
 
     for (let idx = 0; idx < allSteps.length; idx++) {
